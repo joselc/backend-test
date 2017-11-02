@@ -1,9 +1,36 @@
 <h1>Test 1</h1>
 <h2>Challenge 1</h2>
 <% @users.each do |user| %>
-  <p><%= user.name %> - <%= user.crypted_name %> - <%=user.groups.count %> - <%= user.groups.pluck(:name) %></p>
+  <p><%= user.name %> - <%= user.crypted_name %> - <%=user.gc %> - <%= user.gl %></p>
 <% end %>
+<h3>Equivalent query</h3>
+<p>SELECT u.name,<br>
+COUNT(DISTINCT(g.id)) as gc,<br>
+string_agg(g.name, ', ') as groups_list<br>
+FROM users u<br>
+LEFT JOIN groups_users gu ON gu.user_id = u.id<br>
+LEFT JOIN groups g ON g.id = gu.group_id<br>
+GROUP BY u.id<br>
+ORDER BY gc ASC;
+</p>
+<h3>Note</h3>
+<p>The order by cannot be included in the ActiveRecord query, as we need to fetch all the rows, so we need to user find_each and it doesn't allow ordering other than the user table primary key. So the ordering is done later in ruby by sorting the result array.</p>
 
 <h2>Challenge 2</h2>
-
+<p>SELECT g.name, u.name, SUM(m.mapviews) as mv<br>
+FROM maps m<br>
+INNER JOIN users u ON m.user_id = u.id<br>
+LEFT JOIN groups_users gu ON u.id = gu.user_id<br>
+LEFT JOIN groups g ON gu.group_id = g.id<br>
+GROUP BY g.name, u.name<br>
+ORDER BY g.name, mv DESC;</p>
 <h2>Challenge 3</h2>
+<p>SELECT g.name, u.name, SUM(m.mapviews) as mv,<br>
+SUM(m.mapviews)/SUM(SUM(m.mapviews)) OVER (PARTITION BY g.id) *100 as mv2<br>
+FROM maps m<br>
+INNER JOIN users u ON m.user_id = u.id<br>
+LEFT JOIN groups_users gu ON u.id = gu.user_id<br>
+LEFT JOIN groups g ON gu.group_id = g.id<br>
+GROUP BY g.id, u.id<br>
+ORDER BY g.name, mv DESC;
+</p>
